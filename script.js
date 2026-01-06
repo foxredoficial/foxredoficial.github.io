@@ -104,11 +104,49 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 
-    // 4. Typewriter Effect for Hero
-    const heroTitle = document.querySelector('.hero-content h1');
-    if (heroTitle) {
-        const text = heroTitle.innerText;
-        heroTitle.innerHTML = `<span class="typewriter">${text}</span>`;
+    // 4. Typing Effect for Hero
+    const typingElement = document.querySelector('.typing-text');
+    if (typingElement) {
+        const phrases = [
+            "Developer",
+            "Designer UI/UX",
+            "Programmer",
+            "Tech Enthusiast"
+        ];
+
+        let phraseIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let typeSpeed = 100;
+
+        function type() {
+            const currentPhrase = phrases[phraseIndex];
+
+            if (isDeleting) {
+                typingElement.textContent = currentPhrase.substring(0, charIndex - 1);
+                charIndex--;
+                typeSpeed = 50; // Faster when deleting
+            } else {
+                typingElement.textContent = currentPhrase.substring(0, charIndex + 1);
+                charIndex++;
+                typeSpeed = 100; // Normal typing speed
+            }
+
+            if (!isDeleting && charIndex === currentPhrase.length) {
+                // Determine wait time at end of phrase
+                isDeleting = true;
+                typeSpeed = 2000; // Wait 2s before deleting
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                phraseIndex = (phraseIndex + 1) % phrases.length;
+                typeSpeed = 500; // Wait 0.5s before typing next
+            }
+
+            setTimeout(type, typeSpeed);
+        }
+
+        // Start the loop
+        setTimeout(type, 1000);
     }
 
     // 5. 3D Tilt Effect for Cards
