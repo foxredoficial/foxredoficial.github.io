@@ -585,6 +585,14 @@ nav {
     /* prevent full width if not needed */
     margin-left: auto;
     margin-right: auto;
+    /* Link support */
+    text-decoration: none;
+    color: #fff;
+    cursor: default;
+}
+
+a.contact-item {
+    cursor: pointer;
 }
 
 .contact-item:hover {
