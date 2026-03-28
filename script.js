@@ -53,6 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
         lastScroll = currentScroll;
     });
 
+    // Close mobile menu on nav link click
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+            hamburger.classList.remove('active');
+            const icon = hamburger.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-times');
+                icon.classList.add('fa-bars');
+            }
+        });
+    });
+
     if (hamburger) {
         hamburger.addEventListener('click', () => {
             navLinks.classList.toggle('active');
@@ -84,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, observerOptions);
 
-    document.querySelectorAll('.section-title, .timeline-item, .card, .about-content, .skills-wrapper, .contact-item').forEach(el => {
+    document.querySelectorAll('.section-title, .timeline-item, .card, .about-content, .skills-wrapper, .contact-item, .project-card').forEach(el => {
         el.classList.add('reveal');
         observer.observe(el);
     });
