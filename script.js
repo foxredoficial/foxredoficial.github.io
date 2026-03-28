@@ -1,93 +1,78 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize Lenis for Smooth Momentum Scrolling
-    const lenis = new Lenis({
-        duration: 1.2,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        direction: 'vertical',
-        gestureDirection: 'vertical',
-        smooth: true,
-        mouseMultiplier: 1,
-        smoothTouch: false,
-        touchMultiplier: 2,
-    });
 
-    function raf(time) {
-        lenis.raf(time);
+    // 1. Lenis smooth scroll
+    let lenis;
+    try {
+        lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            smooth: true,
+            smoothTouch: false,
+            touchMultiplier: 2,
+        });
+        function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
         requestAnimationFrame(raf);
-    }
+    } catch(e) { /* fallback to native scroll */ }
 
-    requestAnimationFrame(raf);
-
-    // Smooth scroll for anchor links using Lenis
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
+        anchor.addEventListener('click', function(e) {
+            const target = document.querySelector(this.getAttribute('href'));
+            if (!target) return;
             e.preventDefault();
-            lenis.scrollTo(this.getAttribute('href'));
+            if (lenis) {
+                lenis.scrollTo(this.getAttribute('href'));
+            } else {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
         });
     });
 
-    // 2. Mobile Menu Logic & Scroll Header
-    const hamburger = document.querySelector('.hamburger');
-    const navLinks = document.querySelector('.nav-links');
+    // 2. Header hide/show on scroll
     const header = document.querySelector('header');
     let lastScroll = 0;
-
-    // Scroll Header Logic
     window.addEventListener('scroll', () => {
-        const currentScroll = window.pageYOffset;
-
-        if (currentScroll <= 0) {
-            header.classList.remove('scroll-up');
-            return;
-        }
-
-        if (currentScroll > lastScroll && !header.classList.contains('scroll-down')) {
-            // Scroll Down
+        const cur = window.pageYOffset;
+        if (cur <= 0) { header.classList.remove('scroll-up'); lastScroll = cur; return; }
+        if (cur > lastScroll && !header.classList.contains('scroll-down')) {
             header.classList.remove('scroll-up');
             header.classList.add('scroll-down');
-        } else if (currentScroll < lastScroll && header.classList.contains('scroll-down')) {
-            // Scroll Up
+        } else if (cur < lastScroll && header.classList.contains('scroll-down')) {
             header.classList.remove('scroll-down');
             header.classList.add('scroll-up');
         }
-        lastScroll = currentScroll;
-    });
+        lastScroll = cur;
+    }, { passive: true });
 
-    // Close mobile menu on nav link click
-    document.querySelectorAll('.nav-links a').forEach(link => {
-        link.addEventListener('click', () => {
-            navLinks.classList.remove('active');
-            hamburger.classList.remove('active');
-            const icon = hamburger.querySelector('i');
-            if (icon) {
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            }
-        });
-    });
+    // 3. Mobile menu
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks  = document.querySelector('.nav-links');
+
+    function closeMenu() {
+        navLinks.classList.remove('active');
+        const icon = hamburger.querySelector('i');
+        icon.classList.remove('fa-times');
+        icon.classList.add('fa-bars');
+    }
 
     if (hamburger) {
         hamburger.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-            hamburger.classList.toggle('active');
-
-            const icon = hamburger.querySelector('i');
-            if (navLinks.classList.contains('active')) {
+            const isOpen = navLinks.classList.contains('active');
+            if (isOpen) {
+                closeMenu();
+            } else {
+                navLinks.classList.add('active');
+                const icon = hamburger.querySelector('i');
                 icon.classList.remove('fa-bars');
                 icon.classList.add('fa-times');
-            } else {
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
             }
         });
     }
 
-    // 3. Scroll Reveal Animation (Intersection Observer)
-    const observerOptions = {
-        threshold: 0.15,
-        rootMargin: "0px 0px -50px 0px"
-    };
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', closeMenu);
+    });
 
+    // 4. Scroll reveal
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -95,91 +80,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 observer.unobserve(entry.target);
             }
         });
-    }, observerOptions);
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-    document.querySelectorAll('.section-title, .timeline-item, .card, .about-content, .skills-wrapper, .contact-item, .project-card').forEach(el => {
+    document.querySelectorAll('.section-title, .timeline-item, .card, .about-content, .skills-wrapper, .contact-item').forEach(el => {
         el.classList.add('reveal');
         observer.observe(el);
     });
 
-    // Add Reveal Styles dynamically
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
-        }
-        .reveal-active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    `;
-    document.head.appendChild(style);
-
-    // 4. Typing Effect for Hero
-    const typingElement = document.querySelector('.typing-text');
-    if (typingElement) {
-        const phrases = [
-            "Developer",
-            "Designer UI/UX",
-            "Programmer",
-            "Tech Enthusiast"
-        ];
-
-        let phraseIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
-        let typeSpeed = 100;
+    // 5. Typing effect
+    const typingEl = document.querySelector('.typing-text');
+    if (typingEl) {
+        const phrases = ['Developer', 'Designer UI/UX', 'Programmer', 'Tech Enthusiast'];
+        let pi = 0, ci = 0, del = false, spd = 100;
 
         function type() {
-            const currentPhrase = phrases[phraseIndex];
-
-            if (isDeleting) {
-                typingElement.textContent = currentPhrase.substring(0, charIndex - 1);
-                charIndex--;
-                typeSpeed = 50; // Faster when deleting
-            } else {
-                typingElement.textContent = currentPhrase.substring(0, charIndex + 1);
-                charIndex++;
-                typeSpeed = 100; // Normal typing speed
-            }
-
-            if (!isDeleting && charIndex === currentPhrase.length) {
-                // Determine wait time at end of phrase
-                isDeleting = true;
-                typeSpeed = 2000; // Wait 2s before deleting
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting = false;
-                phraseIndex = (phraseIndex + 1) % phrases.length;
-                typeSpeed = 500; // Wait 0.5s before typing next
-            }
-
-            setTimeout(type, typeSpeed);
+            const p = phrases[pi];
+            typingEl.textContent = del ? p.substring(0, ci - 1) : p.substring(0, ci + 1);
+            del ? ci-- : ci++;
+            spd = del ? 50 : 100;
+            if (!del && ci === p.length) { del = true; spd = 2000; }
+            else if (del && ci === 0)   { del = false; pi = (pi + 1) % phrases.length; spd = 500; }
+            setTimeout(type, spd);
         }
-
-        // Start the loop
         setTimeout(type, 1000);
     }
 
-    // 5. 3D Tilt Effect for Cards
-    const cards = document.querySelectorAll('.card');
-
-    cards.forEach(card => {
+    // 6. 3D tilt for cards
+    document.querySelectorAll('.card').forEach(card => {
         card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-
-            const rotateX = ((y - centerY) / centerY) * -5; // Max -5deg tilt
-            const rotateY = ((x - centerX) / centerX) * 5;  // Max 5deg tilt
-
-            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+            const r  = card.getBoundingClientRect();
+            const rX = ((e.clientY - r.top  - r.height / 2) / (r.height / 2)) * -5;
+            const rY = ((e.clientX - r.left - r.width  / 2) / (r.width  / 2)) *  5;
+            card.style.transform = `perspective(1000px) rotateX(${rX}deg) rotateY(${rY}deg) scale(1.02)`;
         });
-
         card.addEventListener('mouseleave', () => {
             card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
         });
